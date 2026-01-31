@@ -1,5 +1,6 @@
 fastapi
 uvicorn
-faiss
+faiss-cpu
 pydantic
 requests
+numpy

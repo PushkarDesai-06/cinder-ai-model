@@ -240,7 +240,7 @@ class RecommendationEngine:
         results = []
         for item in selected:
             result = {
-                "similarity_kscore": float(item["similarity_score"]),  # Convert numpy to Python float
+                "similarity_score": float(item["similarity_score"]),  # Convert numpy to Python float
                 **item["product_info"]
             }
             results.append(result)
@@ -248,7 +248,8 @@ class RecommendationEngine:
         # Debug logging
         if results:
             print(f"🎯 Returning {len(results)} personalized recommendations")
-            print(f"   Similarity scores: {[f'{r['similarity_kscore']:.2f}' for r in results[:3]]}")
+            scores = [f"{r['similarity_score']:.2f}" for r in results[:3]]
+            print(f"   Similarity scores: {scores}")
         
         return results
 
