@@ -1,8 +1,5 @@
-BUG_FIX_SCRIPT_TAG.md
-backend/recommendation_engine.py
-FRONTEND_IMPROVEMENTS.md
-VISUAL_COMPARISON.md
-backend/__pycache__/recommendation_engine.cpython-313.pyc
+# Implementation documentation
+mdfiles/
 
 # Logs
 logs
@@ -30,4 +27,3 @@ dist-ssr
 *.sw?
 frontend/.vite/*
 backend/__pycache__/*
-backend/__pycache__/recommendation_engine.cpython-313.pyc

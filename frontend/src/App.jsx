@@ -28,13 +28,27 @@ function App() {
   useEffect(() => {
     console.log('%c✨ CINDER Fashion Discovery ✨', 'font-size: 20px; color: #667eea; font-weight: bold;');
     console.log('%cUser ID: ' + currentUserId, 'color: #764ba2;');
-    console.log('%cKeyboard shortcuts: ← Dislike | → Like', 'color: #95a5a6;');
+    console.log('%c⌨️  Keyboard shortcuts:', 'color: #95a5a6; font-weight: bold;');
+    console.log('%c  ← Left Arrow: 👎 Dislike (2 stars)', 'color: #95a5a6;');
+    console.log('%c  → Right Arrow: 👍 Like (4 stars)', 'color: #95a5a6;');
+    console.log('%c  ↑ Up Arrow: 😍 Love It (5 stars)', 'color: #95a5a6;');
+    console.log('%c  ↓ Down Arrow: 😡 Hate It (1 star)', 'color: #95a5a6;');
   }, [currentUserId]);
 
   // Auto-fetch recommendations on mount
   useEffect(() => {
     fetchRecommendations();
   }, []);
+
+  // Debug: Log loading state changes
+  useEffect(() => {
+    console.log('🔄 Loading state changed:', isLoading);
+  }, [isLoading]);
+
+  // Debug: Log when recommendation changes
+  useEffect(() => {
+    console.log('🎯 Current recommendation:', currentRecommendation?.id || 'none');
+  }, [currentRecommendation]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -43,10 +57,16 @@ function App() {
       
       if (event.key === 'ArrowRight') {
         event.preventDefault();
-        handleUserInteraction('like');
+        handleUserInteraction(4);  // Like (4 stars) - 👍
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        handleUserInteraction('dislike');
+        handleUserInteraction(2);  // Dislike (2 stars) - 👎
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        handleUserInteraction(5);  // Super like (5 stars) - 😍
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        handleUserInteraction(1);  // Strong dislike (1 star) - 😡
       }
     };
 
@@ -62,10 +82,15 @@ function App() {
   };
 
   const fetchRecommendations = async () => {
-    if (isProcessing) return;
+    if (isProcessing) {
+      console.log('⏸️ Already processing, skipping fetch');
+      return;
+    }
     
     setIsLoading(true);
     setLoadingText('Analyzing your preferences...');
+    
+    console.log('🚀 Starting fetch recommendations...');
     
     try {
       const response = await fetch('http://localhost:8000/get-recommendations', {
@@ -77,7 +102,7 @@ function App() {
           user_id: currentUserId,
           colors: colors,
           categories: categories,
-          num_recommendations: 10
+          num_recommendations: 20  // Increased from 10 to 20
         })
       });
 
@@ -104,23 +129,29 @@ function App() {
 
       if (recommendations.length > 0) {
         showToast(`Found ${recommendations.length} perfect matches!`, '🎉');
+        console.log('🎬 Setting first recommendation:', recommendations[0].id);
+        // Set all states together - React 18 will batch these automatically
         setCurrentRecommendation(recommendations[0]);
         setCurrentProductId(recommendations[0].id);
         setRecommendationQueue(recommendations.slice(1));
+        setIsLoading(false);
+        setIsProcessing(false);  // Clear processing flag
+        console.log('✅ States updated, loading hidden, processing cleared');
       } else {
+        console.log('⚠️ No recommendations received');
         showToast('No more recommendations available. You\'ve seen them all! 🎊', '✨');
         setIsProcessing(false);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('❌ Error fetching recommendations:', error);
       showToast('Failed to fetch recommendations. Check if server is running!', '❌');
       setIsLoading(false);
       setIsProcessing(false);
     }
   };
 
-  const handleUserInteraction = async (reaction) => {
+  const handleUserInteraction = async (rating) => {
     if (!currentUserId || !currentProductId || isProcessing) {
       showToast('Please fetch recommendations first', '⚠️');
       return;
@@ -128,9 +159,16 @@ function App() {
 
     setIsProcessing(true);
 
-    const icon = reaction === 'like' ? '💚' : '💔';
-    const message = reaction === 'like' ? 'Added to your favorites!' : 'Noted your preference!';
-    showToast(message, icon);
+    // Map ratings to emoji feedback
+    const feedbackMap = {
+      1: { icon: '💔', message: 'Got it, we\'ll avoid similar items!' },
+      2: { icon: '👎', message: 'Noted your preference!' },
+      4: { icon: '👍', message: 'Added to your favorites!' },
+      5: { icon: '😍', message: 'Amazing! We\'ll find more like this!' }
+    };
+    
+    const feedback = feedbackMap[rating] || { icon: '✅', message: 'Thanks for the feedback!' };
+    showToast(feedback.message, feedback.icon);
 
     try {
       await fetch('http://localhost:8000/record-interaction', {
@@ -141,7 +179,7 @@ function App() {
         body: JSON.stringify({
           user_id: currentUserId,
           product_id: currentProductId,
-          reaction: reaction
+          rating: rating  // Now sending rating instead of reaction
         })
       });
 
@@ -187,8 +225,7 @@ function App() {
             isLoading={isLoading}
             loadingText={loadingText}
             isProcessing={isProcessing}
-            onLike={() => handleUserInteraction('like')}
-            onDislike={() => handleUserInteraction('dislike')}
+            onRate={handleUserInteraction}
           />
         </div>
       </div>

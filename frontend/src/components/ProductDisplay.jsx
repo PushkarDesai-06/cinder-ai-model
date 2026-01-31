@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, onLike, onDislike }) {
+function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, onRate }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [similarityWidth, setSimilarityWidth] = useState(0);
@@ -10,10 +10,20 @@ function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, 
       setImageLoaded(false);
       setImageLoading(true);
       setSimilarityWidth(0);
+      
+      // Fallback timeout: if image doesn't load in 10 seconds, show it anyway
+      const timeout = setTimeout(() => {
+        console.log('⏰ Image load timeout - forcing display');
+        setImageLoading(false);
+        setImageLoaded(true);
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
     }
   }, [recommendation]);
 
   const handleImageLoad = () => {
+    console.log('🖼️ Image loaded successfully');
     setImageLoading(false);
     setImageLoaded(true);
     
@@ -29,8 +39,10 @@ function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, 
     }
   };
 
-  const handleImageError = () => {
+  const handleImageError = (e) => {
+    console.log('❌ Image failed to load:', e.target.src);
     setImageLoading(false);
+    setImageLoaded(true); // Set to true to show the rest of the UI even if image fails
   };
 
   const getSimilarityPercentage = () => {
@@ -39,6 +51,15 @@ function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, 
     }
     return 'New';
   };
+
+  // Debug logging
+  console.log('🎨 ProductDisplay render:', {
+    hasRecommendation: !!recommendation,
+    isLoading,
+    isProcessing,
+    imageLoaded,
+    imageLoading
+  });
 
   return (
     <div className="recommendation-container">
@@ -50,8 +71,8 @@ function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, 
         </div>
       </div>
 
-      {/* Image Container */}
-      {recommendation && (
+      {/* Show content when we have a recommendation */}
+      {recommendation ? (
         <>
           <div className="image-container">
             {imageLoading && (
@@ -66,6 +87,21 @@ function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, 
               alt="Recommended Product"
               onLoad={handleImageLoad}
               onError={handleImageError}
+              ref={(img) => {
+                if (img) {
+                  console.log('🖼️ Image element created:', {
+                    src: img.src,
+                    complete: img.complete,
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight
+                  });
+                  // If image is already loaded (cached), trigger onLoad manually
+                  if (img.complete && img.naturalWidth > 0) {
+                    console.log('✅ Image was already cached/loaded - triggering onLoad');
+                    handleImageLoad();
+                  }
+                }
+              }}
             />
           </div>
 
@@ -101,31 +137,62 @@ function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, 
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Rating Buttons - Emoji Based */}
           <div>
-            <div className="interaction-buttons">
-              <button
-                className="btn-action btn-dislike"
-                onClick={onDislike}
-                disabled={isProcessing}
-                title="Dislike"
-              >
-                👎
-              </button>
-              <button
-                className="btn-action btn-like"
-                onClick={onLike}
-                disabled={isProcessing}
-                title="Like"
-              >
-                👍
-              </button>
+            <div className="rating-section">
+              <div className="rating-title">How do you feel about this?</div>
+              <div className="rating-buttons">
+                <button
+                  className="btn-rating btn-hate"
+                  onClick={() => onRate(1)}
+                  disabled={isProcessing}
+                  title="Hate It (1 star)"
+                >
+                  😡
+                </button>
+                <button
+                  className="btn-rating btn-dislike"
+                  onClick={() => onRate(2)}
+                  disabled={isProcessing}
+                  title="Dislike (2 stars)"
+                >
+                  👎
+                </button>
+                <button
+                  className="btn-rating btn-like"
+                  onClick={() => onRate(4)}
+                  disabled={isProcessing}
+                  title="Like (4 stars)"
+                >
+                  👍
+                </button>
+                <button
+                  className="btn-rating btn-love"
+                  onClick={() => onRate(5)}
+                  disabled={isProcessing}
+                  title="Love It! (5 stars)"
+                >
+                  �
+                </button>
+              </div>
+              <div className="rating-labels">
+                <span className="rating-label">Hate It</span>
+                <span className="rating-label">Dislike</span>
+                <span className="rating-label">Like</span>
+                <span className="rating-label">Love It!</span>
+              </div>
             </div>
             <div className="keyboard-hint">
-              Keyboard: <kbd>←</kbd> Dislike | <kbd>→</kbd> Like
+              Quick Actions: <kbd>↓</kbd> Hate | <kbd>←</kbd> Dislike | <kbd>→</kbd> Like | <kbd>↑</kbd> Love
             </div>
           </div>
         </>
+      ) : !isLoading && (
+        // Show empty state only if not loading and no recommendation
+        <div className="empty-state">
+          <div className="empty-state-icon">👗</div>
+          <div className="empty-state-text">Getting your recommendations ready...</div>
+        </div>
       )}
     </div>
   );

@@ -30,12 +30,12 @@ class RecommendationRequest(BaseModel):
     user_id: str
     colors: Optional[List[str]] = None
     categories: Optional[List[str]] = None
-    num_recommendations: int = 10
+    num_recommendations: int = 20  # Increased from 10 to 20 for more diverse initial set
 
 class UserInteractionRequest(BaseModel):
     user_id: str
     product_id: str
-    reaction: str  # 'like' or 'dislike'
+    rating: int | str  # Can be 1-5 (int) OR 'love', 'like', 'dislike', 'hate' (str)
 
 @app.post("/get-recommendations")
 async def get_recommendations(request: RecommendationRequest):
@@ -75,17 +75,18 @@ async def get_recommendations(request: RecommendationRequest):
 @app.post("/record-interaction")
 async def record_user_interaction(request: UserInteractionRequest):
     """
-    Record user interaction without returning recommendations
+    Record user interaction with rating.
+    rating can be: 1-5 (numeric) OR 'love', 'like', 'dislike', 'hate' (string)
     """
     if rec_engine is None:
         raise HTTPException(status_code=500, detail="Recommendation engine not initialized")
     try:
 
-        # Record user interaction
+        # Record user interaction with rating
         rec_engine.record_user_interaction(
             request.user_id, 
             request.product_id,
-            request.reaction
+            request.rating
         )
 
         return {"status": "Interaction recorded successfully"}

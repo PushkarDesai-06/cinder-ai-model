@@ -6,36 +6,66 @@ import os
 
 class UserInteractionTracker:
     def __init__(self):
-        self.liked_products = set()
-        self.disliked_products = set()
-        self.interaction_embeddings = {"liked": [], "disliked": []}
+        self.interactions = []  # List of dicts: {product_id, embedding, rating, weight}
+        self.rated_products = set()  # Track which products have been rated
 
-    def add_interaction(self, product_id, embedding, reaction):
-        if reaction == "like":
-            self.liked_products.add(product_id)
-            self.interaction_embeddings["liked"].append(embedding)
-        else:
-            self.disliked_products.add(product_id)
-            self.interaction_embeddings["disliked"].append(embedding)
+    def add_interaction(self, product_id, embedding, rating):
+        """
+        Add user interaction with rating-based weighting.
+        rating can be: 1-5 (stars) OR 'love' (5), 'like' (4), 'dislike' (2), 'hate' (1)
+        """
+        # Convert string reactions to numeric ratings for backward compatibility
+        rating_map = {
+            'love': 5,      # 😍 Super like
+            'like': 4,      # 👍 Like (right arrow)
+            'dislike': 2,   # 👎 Dislike (left arrow)
+            'hate': 1       # 😡 Strong dislike
+        }
+        
+        if isinstance(rating, str):
+            rating = rating_map.get(rating, 3)  # Default to neutral if unknown
+        
+        # Convert rating (1-5) to weight (-1.0 to +1.0)
+        # 5 stars → +1.0, 4 stars → +0.5, 3 stars → 0, 2 stars → -0.5, 1 star → -1.0
+        weight = (rating - 3) / 2.0
+        
+        self.interactions.append({
+            'product_id': product_id,
+            'embedding': embedding,
+            'rating': rating,
+            'weight': weight
+        })
+        self.rated_products.add(product_id)
+        
+        print(f"📊 Interaction recorded: Product {product_id}, Rating: {rating} stars, Weight: {weight:.2f}")
 
     def compute_preference_vector(self):
-        liked_vector = (
-            np.mean(self.interaction_embeddings["liked"], axis=0)
-            if self.interaction_embeddings["liked"]
-            else None
-        )
-        disliked_vector = (
-            np.mean(self.interaction_embeddings["disliked"], axis=0)
-            if self.interaction_embeddings["disliked"]
-            else None
-        )
-
-        if liked_vector is not None and disliked_vector is not None:
-            return liked_vector - 0.5 * disliked_vector
-        elif liked_vector is not None:
-            return liked_vector
-        elif disliked_vector is not None:
-            return -disliked_vector
+        """
+        Compute user preference vector as weighted average of rated items.
+        Items with higher ratings have more positive influence.
+        """
+        if not self.interactions:
+            return None
+        
+        # Calculate weighted sum of embeddings
+        weighted_sum = np.zeros_like(self.interactions[0]['embedding'])
+        total_weight = 0.0
+        
+        for item in self.interactions:
+            weighted_sum += item['weight'] * item['embedding']
+            total_weight += abs(item['weight'])  # Use absolute weight for normalization
+        
+        if total_weight > 0:
+            preference = weighted_sum / total_weight
+            
+            # Normalize the preference vector
+            norm = np.linalg.norm(preference)
+            if norm > 0:
+                preference = preference / norm
+            
+            print(f"🎯 Computed preference vector from {len(self.interactions)} interactions")
+            return preference
+        
         return None
 
 
@@ -66,7 +96,11 @@ class RecommendationEngine:
 
         self.user_trackers = {}
 
-    def record_user_interaction(self, user_id, product_id, reaction="like"):
+    def record_user_interaction(self, user_id, product_id, rating):
+        """
+        Record user interaction with rating.
+        rating can be: 1-5 (numeric) OR 'love', 'like', 'dislike', 'hate' (string)
+        """
         if user_id not in self.user_trackers:
             self.user_trackers[user_id] = UserInteractionTracker()
 
@@ -85,8 +119,8 @@ class RecommendationEngine:
             if norm > 0:
                 embedding = embedding / norm
 
-            # Record interaction
-            self.user_trackers[user_id].add_interaction(product_id, embedding, reaction)
+            # Record interaction with rating
+            self.user_trackers[user_id].add_interaction(product_id, embedding, rating)
 
     def get_recommendations(
         self, user_id, num_recommendations=10, color_filter=None, category_filter=None
@@ -124,10 +158,7 @@ class RecommendationEngine:
             product_id = product_info["id"]
 
             # Skip already interacted products
-            if (
-                product_id in user_tracker.liked_products
-                or product_id in user_tracker.disliked_products
-            ):
+            if product_id in user_tracker.rated_products:
                 continue
 
             # Apply filters
@@ -224,9 +255,14 @@ class RecommendationEngine:
     def _get_diverse_recommendations(
         self, num_recommendations, color_filter=None, category_filter=None
     ):
+        """
+        Get diverse recommendations by sampling evenly across the entire catalog.
+        Increased diversity for cold start experience.
+        """
         total_vectors = self.index.ntotal
 
-        step = max(1, total_vectors // (num_recommendations * 2))
+        # Increase diversity multiplier from 2 to 5 for maximum spread
+        step = max(1, total_vectors // (num_recommendations * 5))
 
         recommendations = []
         for i in range(0, total_vectors, step):
@@ -246,6 +282,7 @@ class RecommendationEngine:
                 if len(recommendations) >= num_recommendations:
                     break
 
+        print(f"🌈 Returning {len(recommendations)} diverse recommendations (cold start)")
         return recommendations
 
 

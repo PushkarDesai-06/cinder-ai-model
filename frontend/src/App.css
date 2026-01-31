@@ -89,6 +89,9 @@ body {
   animation: fadeInUp 0.8s ease;
   position: relative;
   overflow: hidden;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .sidebar-card {
@@ -176,8 +179,9 @@ body {
 .image-container {
   position: relative;
   width: 100%;
+  max-width: 520px;
   height: 500px;
-  margin-bottom: 25px;
+  margin: 0 auto 25px;
   border-radius: 20px;
   overflow: hidden;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -299,11 +303,125 @@ body {
   100% { transform: translateX(100%); }
 }
 
-.interaction-buttons {
+/* Rating Section - Emoji Based */
+.rating-section {
+  margin-bottom: 25px;
+}
+
+.rating-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3436;
+  margin-bottom: 15px;
+}
+
+.rating-buttons {
   display: flex;
   justify-content: center;
-  gap: 30px;
-  margin-bottom: 20px;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.btn-rating {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  position: relative;
+  overflow: hidden;
+  background: white;
+}
+
+.btn-rating::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-rating:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-hate {
+  background: linear-gradient(135deg, #ff4757, #ee5a6f);
+}
+
+.btn-hate:hover {
+  transform: scale(1.15) rotate(-10deg);
+  box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+}
+
+.btn-dislike {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+}
+
+.btn-dislike:hover {
+  transform: scale(1.15) rotate(-5deg);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+.btn-like {
+  background: linear-gradient(135deg, #51cf66, #37b24d);
+}
+
+.btn-like:hover {
+  transform: scale(1.15) rotate(5deg);
+  box-shadow: 0 6px 20px rgba(81, 207, 102, 0.4);
+}
+
+.btn-love {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+}
+
+.btn-love:hover {
+  transform: scale(1.15) rotate(10deg);
+  box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+  animation: heartbeat 0.3s ease-in-out;
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1.15); }
+  50% { transform: scale(1.25); }
+}
+
+.btn-rating:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.rating-labels {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.rating-label {
+  width: 70px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #95a5a6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Old interaction buttons - keeping for backward compatibility but hidden */
+.interaction-buttons {
+  display: none;
 }
 
 .btn-action {
