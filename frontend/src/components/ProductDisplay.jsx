@@ -4,12 +4,14 @@ function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, 
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [similarityWidth, setSimilarityWidth] = useState(0);
+  const [isTitleExpanded, setIsTitleExpanded] = useState(false);
 
   useEffect(() => {
     if (recommendation) {
       setImageLoaded(false);
       setImageLoading(true);
       setSimilarityWidth(0);
+      setIsTitleExpanded(false); // Reset title expansion for new recommendation
       
       // Fallback timeout: if image doesn't load in 10 seconds, show it anyway
       const timeout = setTimeout(() => {
@@ -107,7 +109,11 @@ function ProductDisplay({ recommendation, isLoading, loadingText, isProcessing, 
 
           {/* Product Info */}
           <div className={`product-info ${imageLoaded ? 'visible' : ''}`}>
-            <div className="product-title">
+            <div 
+              className={`product-title ${isTitleExpanded ? 'expanded' : ''}`}
+              onClick={() => setIsTitleExpanded(!isTitleExpanded)}
+              title="Click to expand/collapse"
+            >
               {recommendation.title || 'Fashion Item'}
             </div>
             <div className="product-details">
