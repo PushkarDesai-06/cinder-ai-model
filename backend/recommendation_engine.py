@@ -144,12 +144,18 @@ class RecommendationEngine:
                 norm_emb = np.linalg.norm(embedding)
                 if norm_emb > 0:
                     embedding = embedding / norm_emb
+                
+                # Calculate cosine similarity directly (since embeddings are normalized)
+                # This is more meaningful than distance-based similarity
+                cosine_similarity = np.dot(user_preference, embedding)
+                # Convert from [-1, 1] to [0, 1] range for display
+                similarity_score = (cosine_similarity + 1) / 2
                     
                 candidates.append({
                     "idx": idx,
                     "key": key,
                     "product_info": product_info,
-                    "similarity_score": 1 / (1 + distances[i]),
+                    "similarity_score": float(similarity_score),
                     "embedding": embedding
                 })
 
@@ -203,10 +209,15 @@ class RecommendationEngine:
         results = []
         for item in selected:
             result = {
-                "similarity_score": float(item["similarity_score"]),  # Convert numpy to Python float
+                "similarity_kscore": float(item["similarity_score"]),  # Convert numpy to Python float
                 **item["product_info"]
             }
             results.append(result)
+        
+        # Debug logging
+        if results:
+            print(f"🎯 Returning {len(results)} personalized recommendations")
+            print(f"   Similarity scores: {[f'{r['similarity_kscore']:.2f}' for r in results[:3]]}")
         
         return results
 
